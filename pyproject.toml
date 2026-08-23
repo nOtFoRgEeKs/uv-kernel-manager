@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "uv-kernel-manager"
+version = "0.1.0"
+description = "A lightweight CLI to seamlessly register and manage uv-managed Python environments as Jupyter kernels."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "nOtFoRgEeKs" }]
+classifiers = [
+  "Environment :: Console",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Build Tools",
+]
+dependencies = ["jupyter_client>=8.0"]
+
+[project.scripts]
+uv-kernel = "uv_kernel.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/nOtFoRgEeKs/uv-kernel-manager"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/uv_kernel"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[dependency-groups]
+dev = ["pytest>=8", "twine>=6"]
