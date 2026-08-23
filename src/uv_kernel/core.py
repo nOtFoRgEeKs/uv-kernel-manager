@@ -83,10 +83,10 @@ def ensure_ipykernel(project: Project) -> None:
         raise UVKernelError("uv could not add the development dependency ipykernel.") from exc
 
 
-def spec_data(project: Project) -> dict[str, Any]:
+def spec_data(project: Project, kernel_display_name: str | None = None) -> dict[str, Any]:
     return {
         "argv": [str(project.python), "-m", "ipykernel_launcher", "-f", "{connection_file}"],
-        "display_name": display_name(project),
+        "display_name": kernel_display_name or display_name(project),
         "language": "python",
         "metadata": {OWNER_KEY: {
             "version": __version__, "project_path": str(project.root),
@@ -113,15 +113,26 @@ def owned_kernels(manager: KernelSpecManager | None = None) -> list[dict[str, An
     return sorted(results, key=lambda item: item["name"])
 
 
-def install(project: Project, manager: KernelSpecManager | None = None) -> dict[str, Any]:
+def install(
+    project: Project,
+    manager: KernelSpecManager | None = None,
+    kernel_display_name: str | None = None,
+) -> dict[str, Any]:
     if not project.python.is_file():
         raise UVKernelError(f"No project interpreter found at {project.python}. Run `uv sync` first.")
     manager = manager or KernelSpecManager()
     name = kernel_id(project)
     with tempfile.TemporaryDirectory(prefix="uv-kernel-") as temp:
-        Path(temp, "kernel.json").write_text(json.dumps(spec_data(project), indent=2) + "\n", encoding="utf-8")
+        Path(temp, "kernel.json").write_text(
+            json.dumps(spec_data(project, kernel_display_name), indent=2) + "\n",
+            encoding="utf-8",
+        )
         manager.install_kernel_spec(temp, kernel_name=name, user=True, replace=True)
-    return {"name": name, "display_name": display_name(project), "project_path": str(project.root)}
+    return {
+        "name": name,
+        "display_name": kernel_display_name or display_name(project),
+        "project_path": str(project.root),
+    }
 
 
 def matching(project: Project, manager: KernelSpecManager | None = None) -> list[dict[str, Any]]:
