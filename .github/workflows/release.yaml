@@ -1,60 +1,94 @@
 name: Release to PyPI
 
+# A release is deliberately tied to the protected develop -> main promotion.
+# Do not add a push trigger: a direct push must never publish a package.
 on:
-  release:
-    types: [published]
+  pull_request:
+    branches: [main]
+    types: [closed]
 
-# Trusted Publishing exchanges this short-lived GitHub OIDC identity for a
-# PyPI upload credential. No repository secret or write-capable token is used.
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
+# Serialise releases even if several qualifying PRs are merged close together.
 concurrency:
-  group: pypi-publish
+  group: uv-kernel-manager-release-main
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Validate, build, and publish
+  release:
+    name: Validate, tag, publish, and release
+    # Only a merged PR from this repository's develop branch is a release.
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.ref == 'develop' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment:
       name: pypi
       url: https://pypi.org/p/uv-kernel-manager
     steps:
-      - name: Check out the released tag
+      - name: Check out the merged commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
-          persist-credentials: false
+          # For a merged closed pull request, github.sha is the commit now on main.
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Confirm the commit is on main
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
 
-      - name: Validate the release tag and package version
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          set -euo pipefail
-          if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)((a|b|rc)(0|[1-9][0-9]*))?$ ]]; then
-            echo "Release tag must be vMAJOR.MINOR.PATCH or a PyPI pre-release such as v0.1.0rc1; got: $RELEASE_TAG" >&2
-            exit 1
-          fi
-          package_version="$(python - <<'PY'
-          import tomllib
-          from pathlib import Path
-
-          manifest = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
-          print(manifest["project"]["version"])
-          PY
-          )"
-          if [[ "v$package_version" != "$RELEASE_TAG" ]]; then
-            echo "Release tag $RELEASE_TAG does not match pyproject.toml version $package_version" >&2
-            exit 1
-          fi
-
       - name: Install locked development dependencies
         run: uv sync --locked --group dev
+
+      - name: Validate the package version
+        id: version
+        run: |
+          set -euo pipefail
+          version="$(uv run --group dev python scripts/validate_release.py --print-version)"
+          uv run --group dev python scripts/validate_release.py --write-release-notes .release-notes.md
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Reject an existing Git tag
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --force origin
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Refusing to release: Git tag $TAG already exists." >&2
+            exit 1
+          fi
+
+      - name: Reject an existing PyPI release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from urllib.error import HTTPError
+          from urllib.request import urlopen
+
+          url = f"https://pypi.org/pypi/uv-kernel-manager/{os.environ['VERSION']}/json"
+          try:
+              with urlopen(url, timeout=20) as response:
+                  response.read(1)
+          except HTTPError as error:
+              if error.code == 404:
+                  raise SystemExit(0)
+              raise
+          raise SystemExit(f"Refusing to release: uv-kernel-manager {os.environ['VERSION']} already exists on PyPI.")
+          PY
 
       - name: Run tests
         run: uv run --group dev pytest
@@ -65,5 +99,21 @@ jobs:
       - name: Validate distribution metadata
         run: uv run --group dev twine check dist/*
 
+      - name: Create the release tag
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag --annotate "$TAG" --message "Release $TAG" "$GITHUB_SHA"
+          git push origin "$TAG"
+
       - name: Publish to PyPI with Trusted Publishing
         run: uv publish --trusted-publishing always dist/*
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: gh release create "$TAG" --target "$GITHUB_SHA" --notes-file .release-notes.md --title "$TAG"
