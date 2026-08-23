@@ -1,0 +1,69 @@
+name: Release to PyPI
+
+on:
+  release:
+    types: [published]
+
+# Trusted Publishing exchanges this short-lived GitHub OIDC identity for a
+# PyPI upload credential. No repository secret or write-capable token is used.
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: pypi-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Validate, build, and publish
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/uv-kernel-manager
+    steps:
+      - name: Check out the released tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Validate the release tag and package version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)((a|b|rc)(0|[1-9][0-9]*))?$ ]]; then
+            echo "Release tag must be vMAJOR.MINOR.PATCH or a PyPI pre-release such as v0.1.0rc1; got: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          package_version="$(python - <<'PY'
+          import tomllib
+          from pathlib import Path
+
+          manifest = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          print(manifest["project"]["version"])
+          PY
+          )"
+          if [[ "v$package_version" != "$RELEASE_TAG" ]]; then
+            echo "Release tag $RELEASE_TAG does not match pyproject.toml version $package_version" >&2
+            exit 1
+          fi
+
+      - name: Install locked development dependencies
+        run: uv sync --locked --group dev
+
+      - name: Run tests
+        run: uv run --group dev pytest
+
+      - name: Build distributions
+        run: uv build --no-sources --clear
+
+      - name: Validate distribution metadata
+        run: uv run --group dev twine check dist/*
+
+      - name: Publish to PyPI with Trusted Publishing
+        run: uv publish --trusted-publishing always dist/*
