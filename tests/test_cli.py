@@ -7,7 +7,7 @@ from uv_kernel.cli import main, parser
 
 
 def test_package_and_cli_versions_match_installed_metadata(capsys):
-    metadata_version = version("uv-kernel")
+    metadata_version = version("uv-kernel-manager")
     project_version = tomllib.loads(
         (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
     )["project"]["version"]

@@ -1,7 +1,8 @@
-# uv-kernel
+# uv-kernel-manager
 
-`uv-kernel` manages Jupyter kernels whose Python interpreters live in
-[`uv`](https://docs.astral.sh/uv/) project environments. It is intended for a
+`uv-kernel-manager` provides the `uv-kernel` command, which manages Jupyter
+kernels whose Python interpreters live in [`uv`](https://docs.astral.sh/uv/)
+project environments. It is intended for a
 central JupyterLab installation with separate, project-local `.venv`
 environments.
 
@@ -14,13 +15,13 @@ Python 3.14 is displayed exactly as `Python 3.14 (fraud-model)`.
 Install the command-line tool with uv:
 
 ```bash
-uv tool install uv-kernel
+uv tool install uv-kernel-manager
 ```
 
 Or use pip in an environment of your choice:
 
 ```bash
-python -m pip install uv-kernel
+python -m pip install uv-kernel-manager
 ```
 
 For local development, install the checkout as a tool:
@@ -94,7 +95,7 @@ Create a pending publisher on PyPI (or a trusted publisher in an existing PyPI
 project) with the following values:
 
 - Owner: your GitHub user or organization
-- Repository: `uv-kernel`
+- Repository: `uv-kernel-manager`
 - Workflow: `release.yaml`
 - Environment: `pypi`
 
