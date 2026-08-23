@@ -93,6 +93,9 @@ jobs:
       - name: Run tests
         run: uv run --group dev pytest
 
+      - name: Run Ruff lint checks
+        run: uv run --group dev ruff check --no-fix .
+
       - name: Build distributions
         run: uv build --no-sources --clear
 
