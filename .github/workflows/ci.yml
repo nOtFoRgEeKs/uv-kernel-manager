@@ -41,6 +41,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - name: Set up the project environment
         run: uv sync --locked --group dev
+      - name: Run Ruff lint checks
+        run: uv run --group dev ruff check --no-fix .
       - name: Run tests
         run: uv run --group dev pytest
       - name: Build distributions

@@ -38,5 +38,16 @@ dev = [
     "ipykernel>=7.3.0",
     "packaging>=24",
     "pytest>=8",
+    "ruff>=0.16.4",
     "twine>=6",
+]
+
+[tool.ruff]
+fix = true
+
+[tool.ruff.lint]
+# List of rule codes to ignore
+ignore = [
+    "EXE001",  # Shebang is present but file is not executabl
+    "TRY004",  # Prefer `TypeError` exception for invalid type
 ]
