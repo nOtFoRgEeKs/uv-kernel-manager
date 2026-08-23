@@ -1226,6 +1226,7 @@ wheels = [
 [[package]]
 name = "uv-kernel-manager"
 version = "0.1.2"
+
 source = { editable = "." }
 dependencies = [
     { name = "jupyter-client" },
