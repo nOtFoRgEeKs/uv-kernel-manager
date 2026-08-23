@@ -11,6 +11,28 @@ permissions:
   contents: read
 
 jobs:
+  release-version:
+    name: Validate main release version
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.ref == 'develop' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - name: Set up the locked project environment
+        run: uv sync --locked --group dev
+      - name: Require a new PEP 440 release version
+        run: |
+          git fetch origin "${{ github.event.pull_request.base.ref }}"
+          uv run --group dev python scripts/validate_release.py \
+            --base-ref "origin/${{ github.event.pull_request.base.ref }}" \
+            --require-changelog-change
+
   test-and-build:
     name: Test and Build Validation
     runs-on: ubuntu-latest
