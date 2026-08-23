@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "uv-kernel-manager"
-version = "0.1.1a1"
+version = "0.1.2"
 description = "A lightweight CLI to seamlessly register and manage uv-managed Python environments as Jupyter kernels."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -33,4 +33,9 @@ testpaths = ["tests"]
 addopts = "-q"
 
 [dependency-groups]
-dev = ["pytest>=8", "twine>=6"]
+dev = [
+    "ipykernel>=7.3.0",
+    "packaging>=24",
+    "pytest>=8",
+    "twine>=6",
+]

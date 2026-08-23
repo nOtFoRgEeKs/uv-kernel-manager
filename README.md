@@ -148,6 +148,64 @@ You can also run the command directly from the checkout:
 uv run uv-kernel --help
 ```
 
+## Release workflow
+
+`main` represents released software. Normal development flows from feature
+branches into `develop`; those changes are validated by CI only. A release is
+created exclusively when the repository's `develop` branch is merged into the
+protected `main` branch through a pull request. Direct pushes to `main`, pushes
+to `develop`, feature branches, and manual GitHub releases do not publish to
+PyPI.
+
+Before opening a `develop` → `main` pull request, update `[project].version` in
+`pyproject.toml` to a new, canonical public [PEP 440](https://peps.python.org/pep-0440/)
+version. For example, use `0.1.2` for the next patch release or `0.2.0a1` for
+an alpha release. The CI check on that pull request rejects an unchanged,
+lower, malformed, or local version before it can merge.
+
+The same pull request must update `CHANGELOG.md`. Use one section per release
+in this form:
+
+```markdown
+## [0.2.0a1]
+
+### Added
+
+- A user-visible change.
+```
+
+The GitHub Release title is the release tag (for example, `v0.2.0a1`), and the
+section body becomes its release notes. This keeps the public changelog and
+GitHub Release notes identical. The quality gate rejects a release PR if the
+matching version section is missing, empty, or `CHANGELOG.md` did not change
+from `main`.
+
+After the pull request is merged, the release workflow serially:
+
+1. validates the exact merge commit and its version;
+2. rejects an existing Git tag or PyPI release for that version;
+3. runs the locked test, build, and package-metadata checks;
+4. creates the annotated tag `v<version>`;
+5. publishes the wheel and source distribution to PyPI with Trusted Publishing;
+6. creates a GitHub Release using the title and notes from `CHANGELOG.md`.
+
+The workflow does not overwrite PyPI releases. If a stale version, tag, or
+existing PyPI release is detected, it fails before publishing. Releases are
+also queued one at a time to prevent concurrent publication attempts.
+
+### One-time repository configuration
+
+1. Protect `main`: require pull requests and the CI checks, and prevent direct
+   pushes. Restrict merges to the maintainers who approve releases.
+2. In PyPI, configure a Trusted Publisher for this repository with workflow
+   file `.github/workflows/release.yaml` and environment `pypi`.
+3. In GitHub, create the protected `pypi` environment (recommended) and limit
+   its deployment approval rules to release maintainers.
+
+If publication fails after the tag has been pushed, investigate the failure
+before retrying. Do not delete or move a published release tag; the version
+gate intentionally treats an existing tag as immutable.
+
 ## Contributing
 
 Contributions are welcome. Please open an issue or pull request with a focused
