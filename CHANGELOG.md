@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.3]
+
+### Added
+
+- Ruff linting check as quality gate
+
 ## [0.1.2]
 
 ### Added
