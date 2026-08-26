@@ -5,12 +5,21 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from pathlib import Path
 from typing import Any
 
 from . import __version__
-from .core import (UVKernelError, display_name, doctor, ensure_ipykernel,
-                   find_project, install, matching, owned_kernels, remove, stale)
+from .core import (
+    UVKernelError,
+    display_name,
+    doctor,
+    ensure_ipykernel,
+    find_project,
+    install,
+    matching,
+    owned_kernels,
+    remove,
+    stale,
+)
 
 DESCRIPTION = """
 Manage Jupyter kernels for uv-managed Python environments.

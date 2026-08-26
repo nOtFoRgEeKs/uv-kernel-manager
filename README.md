@@ -138,6 +138,7 @@ uv tool install .
 Run the test suite and validate built package metadata before contributing:
 
 ```bash
+uv run ruff check --no-fix .
 uv run pytest
 uv run twine check dist/*
 ```

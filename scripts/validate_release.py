@@ -7,11 +7,10 @@ import argparse
 import re
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
 
+import tomllib
 from packaging.version import InvalidVersion, Version
-
 
 CHANGELOG_PATH = Path("CHANGELOG.md")
 
@@ -49,6 +48,7 @@ def version_from_git_ref(ref: str) -> str | None:
         ["git", "cat-file", "-e", f"{ref}:pyproject.toml"],
         capture_output=True,
         text=True,
+        check=False,
     )
     if exists.returncode:
         # This supports the one-time bootstrap of a repository whose main
@@ -91,7 +91,7 @@ def changelog_notes(version: str) -> str:
 
 def changelog_changed_since(base_ref: str) -> bool:
     result = subprocess.run(
-        ["git", "diff", "--quiet", f"{base_ref}...HEAD", "--", str(CHANGELOG_PATH)]
+        ["git", "diff", "--quiet", f"{base_ref}...HEAD", "--", str(CHANGELOG_PATH)], check=False
     )
     return result.returncode == 1
 

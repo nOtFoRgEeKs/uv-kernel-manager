@@ -1,9 +1,14 @@
-import json
-from pathlib import Path
 
 import pytest
 
-from uv_kernel.core import Project, UVKernelError, find_project, kernel_id, owned, spec_data
+from uv_kernel.core import (
+    Project,
+    UVKernelError,
+    find_project,
+    kernel_id,
+    owned,
+    spec_data,
+)
 
 
 def test_find_project_uses_metadata_name_and_venv(tmp_path):

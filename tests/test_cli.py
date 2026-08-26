@@ -1,9 +1,10 @@
 from importlib.metadata import version
 from pathlib import Path
+
 import tomllib
 
 from uv_kernel import __version__
-from uv_kernel.cli import choose_kernel_name, main, parser
+from uv_kernel.cli import choose_kernel_name, main
 
 
 def test_package_and_cli_versions_match_installed_metadata(capsys):

@@ -10,11 +10,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import tomllib
 from jupyter_client.kernelspec import KernelSpecManager
 
 from . import __version__
